@@ -1,0 +1,224 @@
+{
+  "name": "Yandex Mail to Google Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "format": "resolved",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5e78cc8d-a24d-4fbc-b670-750b64af86c4",
+      "name": "Email Trigger (IMAP)",
+      "credentials": {
+        "imap": {
+          "id": "S2QA6Uumlwd9bvjQ",
+          "name": "IMAP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "15a0897e-dac3-4151-96ca-f365355ed265",
+              "name": "Отправитель",
+              "value": "={{ $json.from.value[0].address }}",
+              "type": "string"
+            },
+            {
+              "id": "76fb6994-fa97-40c4-bea1-ca2669c11e51",
+              "name": "Тема",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "8ab8d071-1a40-424e-9254-b21b8ad5126a",
+              "name": "Дата Получения",
+              "value": "={{ $json.headers.date }}",
+              "type": "string"
+            },
+            {
+              "id": "ecfae30a-7aef-4439-8c8b-5313c8868da1",
+              "name": "Сообщение",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ],
+      "id": "f3b7d27a-1e2d-4e75-a1ef-f974e5344187",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const months = [\n  \"января\", \"февраля\", \"марта\", \"апреля\", \"мая\", \"июня\",\n  \"июля\", \"августа\", \"сентября\", \"октября\", \"ноября\", \"декабря\"\n];\n\nfor (const item of items) {\n  // Получаем данные из предыдущего узла \"Set\".\n  // Важно: обращение к полям с пробелами в названии происходит через item.json[\"Имя Поля\"]\n  const sender = item.json.Отправитель;\n  const subject = item.json.Тема;\n  const rawMessageBody = item.json.Сообщение || \"\"; // Сырой текст письма, если его нет, то пустая строка\n  const receivedDateStr = item.json[\"Дата Получения\"]; // Правильное обращение к полю \"Дата Получения\"\n\n  // --- Блок форматирования даты и времени ---\n  let formattedDate = \"Ошибка: Дата не найдена\"; // Значение по умолчанию, если дату не удалось обработать\n\n  if (!receivedDateStr) {\n    // Если поле \"Дата Получения\" пустое или отсутствует\n    console.error(\"Ошибка: Поле 'Дата Получения' не найдено или пустое для элемента:\", item.json);\n  } else {\n    const dateObj = new Date(receivedDateStr);\n\n    // Проверяем, является ли полученный объект даты корректным (не \"Invalid Date\")\n    if (isNaN(dateObj.getTime())) {\n      console.error(\"Ошибка: Неверный формат даты в поле 'Дата Получения':\", receivedDateStr);\n    } else {\n      // Извлекаем компоненты даты и времени и форматируем их\n      const day = String(dateObj.getDate()).padStart(2, '0'); // День с ведущим нулем\n      const monthIndex = dateObj.getMonth(); // Индекс месяца (0-11)\n      const year = dateObj.getFullYear(); // Полный год\n      const hours = String(dateObj.getHours()).padStart(2, '0'); // Часы с ведущим нулем\n      const minutes = String(dateObj.getMinutes()).padStart(2, '0'); // Минуты с ведущим нулем\n\n      // Собираем отформатированную строку\n      formattedDate = `${day} ${months[monthIndex]} ${year} ${hours}:${minutes}`;\n    }\n  }\n  // Добавляем отформатированную дату в новый ключ \"ФорматированнаяДата\"\n  item.json.ФорматированнаяДата = formattedDate;\n  // --- Конец блока форматирования даты и времени ---\n\n\n  // --- Блок очистки текста сообщения ---\n  let cleanedMessage = rawMessageBody;\n\n  // 1. Удаляем HTML-теги (например, <div>, <p>, <a> и т.д.)\n  // Это помогает избавиться от HTML-структуры, если письмо пришло в таком виде.\n  cleanedMessage = cleanedMessage.replace(/<[^>]*>/g, '');\n\n  // 2. Декодируем основные HTML-сущности (например, &amp; становится &, &lt; становится <)\n  // Это нужно, чтобы специальные символы отображались корректно.\n  cleanedMessage = cleanedMessage.replace(/&amp;/g, '&')\n                               .replace(/&lt;/g, '<')\n                               .replace(/&gt;/g, '>')\n                               .replace(/&quot;/g, '\"')\n                               .replace(/&#39;/g, \"'\")\n                               .replace(/&nbsp;/g, ' '); // Также заменим неразрывные пробелы\n\n  // 3. Удаляем URL-адреса.\n  // Это регулярные выражения для удаления ссылок, начинающихся с http/https/ftp или www.\n  // Они пытаются удалить ссылки, но могут быть не идеальны для всех случаев.\n  cleanedMessage = cleanedMessage.replace(/(?:https?|ftp):\\/\\/[\\n\\S]+/g, '');\n  cleanedMessage = cleanedMessage.replace(/www\\.[^\\s]+/g, '');\n\n  // 4. Заменяем множественные переносы строк на один пробел и схлопываем множественные пробелы в один.\n  // В конце обрезаем пробелы с начала и конца строки (trim()).\n  cleanedMessage = cleanedMessage.replace(/(\\r\\n|\\n|\\r)/gm, ' '); // Все виды переносов строк заменяем на пробел\n  cleanedMessage = cleanedMessage.replace(/\\s+/g, ' ').trim();    // Схлопываем множественные пробелы и удаляем по краям\n\n  // Добавляем очищенное сообщение в новый ключ \"ОчищенноеСообщение\"\n  item.json.ОчищенноеСообщение = cleanedMessage;\n  // --- Конец блока очистки сообщения ---\n}\n\n// Возвращаем измененные данные для следующего узла в workflow.\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "3c09f2c0-a8fe-4721-bb81-e6b7ef97b5dd",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1ZWirCeLQFRy6R2x2kkcIjhoyrW7ih8YjfyvNnb7d3rQ",
+          "mode": "list",
+          "cachedResultName": "Письма с почты",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZWirCeLQFRy6R2x2kkcIjhoyrW7ih8YjfyvNnb7d3rQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Входящие",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZWirCeLQFRy6R2x2kkcIjhoyrW7ih8YjfyvNnb7d3rQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Дата": "={{ $json['ФорматированнаяДата'] }}",
+            "Отправитель": "={{ $json['Отправитель'] }}",
+            "Тема": "={{ $json['Тема'] }}",
+            "Сообщение": "={{ $json['ОчищенноеСообщение'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Дата",
+              "displayName": "Дата",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Отправитель",
+              "displayName": "Отправитель",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Тема",
+              "displayName": "Тема",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Сообщение",
+              "displayName": "Сообщение",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Скрепка",
+              "displayName": "Скрепка",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        660,
+        0
+      ],
+      "id": "ae0c7ed5-62ce-48e0-b851-3587156853df",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "4PHRUirKCydCwsB5",
+          "name": "Google Sheets account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Email Trigger (IMAP)": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ef8c31aa-497f-4417-bc88-1fee17c5402b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a0945f0f1af79380208d723a1297dbc51131ded453f55e820d60ad8c75572bf4"
+  },
+  "id": "dDIOtxUXFwDIWakj",
+  "tags": []
+}
