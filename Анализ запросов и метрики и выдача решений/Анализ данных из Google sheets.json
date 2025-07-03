@@ -1,0 +1,421 @@
+{
+  "name": "My workflow 7",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -120,
+        -60
+      ],
+      "id": "4264b3a4-707e-496a-abe0-137af4ca095e",
+      "name": "When chat message received",
+      "webhookId": "f7b5201e-053c-4905-8500-5c3958125ce2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Ты — SEO-аналитик. Проанализируй запрос \"${$json[\"Запрос\"]}\" с метриками: Позиция: ${$json[\"Позиция\"]}, Показы: ${$json[\"Показы\"]}, Клики: ${$json[\"Клики\"]}, CTR: ${$json[\"CTR\"]}.\n\nОпредели проблему, дай рекомендации и предложи решения.\n    \nФормат ответа JSON с полями: Проблема, Рекомендации, Решения.`",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=Ты — SEO-аналитик. Проанализируй запрос \"{{ $json[\"Запрос\"] }}\", у него:\nПозиция: {{ $json[\"Позиция\"] }}, Показы: {{ $json[\"Показы\"] }}, Клики: {{ $json[\"Клики\"] }}, CTR: {{ $json[\"CTR\"] }}.\n\n1. В чём проблема?\n2. Что порекомендуешь?\n3. Какие конкретные действия по SEO?\n\nФормат ответа: JSON:\n{\n  \"Проблема\": \"...\",\n  \"Рекомендации\": \"...\",\n  \"Решения\": \"...\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        -100
+      ],
+      "id": "7e2e3e49-92d7-42d8-9cb3-0e7af04d4d8c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1_60I4MxrKhEDhNfiI07uVIjPaPx--zvDIE1PFTeyMgw",
+          "mode": "list",
+          "cachedResultName": "Автомат",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_60I4MxrKhEDhNfiI07uVIjPaPx--zvDIE1PFTeyMgw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Лист1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_60I4MxrKhEDhNfiI07uVIjPaPx--zvDIE1PFTeyMgw/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Рекомендации": "={{ $json.output['Рекомендации'] }}",
+            "Запрос": "={{ $('Loop Over Items').item.json['Запрос'] }}",
+            "Позиция": "={{ $('Loop Over Items').item.json['Позиция'] }}",
+            "Показы": "={{ $('Loop Over Items').item.json['Показы'] }}",
+            "Клики": "={{ $('Loop Over Items').item.json['Клики'] }}",
+            "CTR": "={{ $('Loop Over Items').item.json.CTR }}",
+            "Проблемы": "={{ $json.output['Проблемы'] }}",
+            "Решения": "={{ $json.output['Решения'] }}"
+          },
+          "matchingColumns": [
+            "Запрос"
+          ],
+          "schema": [
+            {
+              "id": "Запрос",
+              "displayName": "Запрос",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Позиция",
+              "displayName": "Позиция",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Показы",
+              "displayName": "Показы",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Клики",
+              "displayName": "Клики",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CTR",
+              "displayName": "CTR",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Рекомендации",
+              "displayName": "Рекомендации",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Проблемы",
+              "displayName": "Проблемы",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Решения",
+              "displayName": "Решения",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1360,
+        -100
+      ],
+      "id": "0a32cbdb-1958-4bd9-9462-e972744578d1",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "4PHRUirKCydCwsB5",
+          "name": "Ser_Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"Рекомендации\": \"тут будут твои рекомендации на основе анализа данных из промпта\",\n  \"Проблемы\": \"тут будут проблемы, которые ты нашел на основе анализа метрик\",\n\t\"Решения\": \"Решения, которые ты нашел для найденных проблем\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1240,
+        140
+      ],
+      "id": "d8d7bcdd-f41e-4c78-9e84-6dbfd9edad80",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        900,
+        140
+      ],
+      "id": "ec72671e-eeb2-42ac-9e3d-e4998f3527f6",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "XnMDrFnU9ZuAQ2aJ",
+          "name": "Vov_Ser_OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1_60I4MxrKhEDhNfiI07uVIjPaPx--zvDIE1PFTeyMgw",
+          "mode": "list",
+          "cachedResultName": "Автомат",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_60I4MxrKhEDhNfiI07uVIjPaPx--zvDIE1PFTeyMgw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Лист1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_60I4MxrKhEDhNfiI07uVIjPaPx--zvDIE1PFTeyMgw/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        100,
+        -60
+      ],
+      "id": "35d1fe99-6640-472d-a962-96b6f05fce83",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "4PHRUirKCydCwsB5",
+          "name": "Ser_Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b0169959-3745-4d2c-b142-f95e5f435c14",
+              "leftValue": "={{ $json['Рекомендации'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        -60
+      ],
+      "id": "d8c4a957-88e3-4f0a-a673-81df0957b8ae",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        600,
+        -80
+      ],
+      "id": "fc0613a5-9a90-4b24-84c8-86e18aa3bb79",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        720,
+        40
+      ],
+      "id": "488e0044-0488-482b-afbf-966fd6b10e79"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        480,
+        260
+      ],
+      "id": "767fb444-3e0d-42ce-a38d-fbd2c7f5aa63",
+      "name": "No Operation, do nothing"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "bee40a3b-61ec-4646-92fe-518999a40033",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a0945f0f1af79380208d723a1297dbc51131ded453f55e820d60ad8c75572bf4"
+  },
+  "id": "tJbZWYW3WHFSWzGt",
+  "tags": []
+}
