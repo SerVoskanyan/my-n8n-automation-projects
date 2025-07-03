@@ -29,8 +29,7 @@
 
 ## 🛠️ Как работает воркфлоу
 
-```mermaid
-flowchart TD
+
   A[Google Sheets → Read Rows] --> B[IF: Рекомендации пусто?]
   B -- Да --> C[Loop или SplitInBatches: по 1 строке]
   C --> D[Set/Function: создать chatInput]
