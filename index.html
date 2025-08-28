@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO-Анализатор для GitHub Pages</title>
+    <meta name="description" content="Легкий инструмент для SEO-анализа и аудита, разработанный для развертывания на GitHub Pages.">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+       .container {
+            max-width: 800px;
+            width: 100%;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            padding: 20px 40px;
+            box-sizing: border-box;
+        }
+
+        h1, h2 {
+            color: #2c3e50;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #url-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        #url-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+
+        #analyze-button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #3498db;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+
+        #analyze-button:hover {
+            background-color: #2980b9;
+        }
+        
+        #analyze-button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+       .report-section {
+            border-top: 2px solid #eee;
+            padding-top: 20px;
+            margin-top: 20px;
+        }
+
+       .issue {
+            margin-bottom: 15px;
+            padding: 15px;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-left: 5px solid #dc3545;
+            border-radius: 4px;
+        }
+
+       .info {
+            margin-bottom: 15px;
+            padding: 15px;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-left: 5px solid #28a745;
+            border-radius: 4px;
+        }
+
+       .issue p,.info p {
+            margin: 0;
+        }
+
+       .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>SEO-Анализатор для сайтов</h1>
+        <p>Введите URL-адрес сайта для анализа его технических SEO-параметров. Нажмите кнопку "Анализировать", чтобы начать.</p>
+    </header>
+
+    <form id="url-form">
+        <input type="url" id="url-input" placeholder="Введите URL-адрес сайта (например, https://example.com)" required>
+        <button type="submit" id="analyze-button">
+            Анализировать
+        </button>
+        <div id="loading-spinner" class="loading-spinner"></div>
+    </form>
+
+    <main id="results-container">
+        </main>
+</div>
+
+<script>
+document.getElementById('url-form').addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    const urlInput = document.getElementById('url-input');
+    const analyzeButton = document.getElementById('analyze-button');
+    const spinner = document.getElementById('loading-spinner');
+    const resultsContainer = document.getElementById('results-container');
+
+    const url = urlInput.value;
+
+    // Очистка предыдущих результатов и отображение спиннера
+    resultsContainer.innerHTML = '';
+    analyzeButton.disabled = true;
+    spinner.style.display = 'block';
+
+    try {
+        const pageHtml = await fetchUrl(url);
+        if (pageHtml) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(pageHtml, 'text/html');
+
+            const reportHtml = generateSeoReport(doc, url);
+            resultsContainer.innerHTML = reportHtml;
+        } else {
+            resultsContainer.innerHTML = `<div class="issue"><p>Не удалось получить доступ к сайту. Проверьте URL или убедитесь, что на сервере включена политика CORS (Cross-Origin Resource Sharing). Это критическое ограничение, не зависящее от данного инструмента.</p></div>`;
+        }
+    } catch (error) {
+        console.error('Ошибка анализа:', error);
+        resultsContainer.innerHTML = `<div class="issue"><p>Произошла ошибка при анализе сайта. Пожалуйста, попробуйте еще раз.</p></div>`;
+    } finally {
+        analyzeButton.disabled = false;
+        spinner.style.display = 'none';
+    }
+});
+
+// Асинхронная функция для выполнения запроса к URL.
+async function fetchUrl(url) {
+    try {
+        const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+        const data = await response.json();
+        return data.contents;
+    } catch (error) {
+        console.error("Ошибка при получении URL:", error);
+        return null;
+    }
+}
+
+// Функция для генерации HTML-отчета на основе DOM-документа.
+function generateSeoReport(doc, url) {
+    let report = `
+        <div class="report-section">
+            <h2>Сводка по анализу сайта</h2>
+            <div class="info">
+                <p><strong>Анализируемый URL:</strong> ${url}</p>
+                <p><strong>Дата анализа:</strong> ${new Date().toLocaleString()}</p>
+            </div>
+        </div>
+        <div class="report-section">
+            <h2>Анализ заголовков (h1-h6)</h2>
+            ${analyzeHeadings(doc)}
+        </div>
+        <div class="report-section">
+            <h2>Анализ метатегов</h2>
+            ${analyzeMetaTags(doc)}
+        </div>
+        <div class="report-section">
+            <h2>Проверка файлов robots.txt и sitemap.xml</h2>
+            <p><strong>Внимание:</strong> для этих проверок требуется включенный CORS на целевом сайте.</p>
+            ${checkRobotsAndSitemap(url)}
+        </div>
+    `;
+    return report;
+}
+
+// Анализ заголовков
+function analyzeHeadings(doc) {
+    const headings = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    const h1Count = doc.querySelectorAll('h1').length;
+    let html = '';
+
+    if (h1Count === 0) {
+        html += `<div class="issue"><p>❌ **Критическая ошибка:** Отсутствует тег <code>&lt;h1&gt;</code>. Это основной заголовок, который должен точно отражать тему страницы. <br><strong>Рекомендация:</strong> Добавьте один уникальный <code>&lt;h1&gt;</code> на страницу.</p></div>`;
+    } else if (h1Count > 1) {
+        html += `<div class="issue"><p>❌ **Критическая ошибка:** Обнаружено ${h1Count} тегов <code>&lt;h1&gt;</code>. На странице должен быть только один <code>&lt;h1&gt;</code>.<br><strong>Рекомендация:</strong> Оставьте один основной заголовок, а остальные замените на <code>&lt;h2&gt;</code> или другие заголовки более низкого уровня.</p></div>`;
+    } else {
+        html += `<div class="info"><p>✅ **Отлично:** Найдено 1 тег <code>&lt;h1&gt;</code>.</p></div>`;
+    }
+
+    const headingLevels = Array.from(headings).map(h => parseInt(h.tagName.substring(1)));
+    let isHierarchical = true;
+    for (let i = 0; i < headingLevels.length - 1; i++) {
+        if (headingLevels[i+1] > headingLevels[i] + 1) {
+            isHierarchical = false;
+            break;
+        }
+    }
+
+    if (!isHierarchical) {
+        html += `<div class="issue"><p>⚠️ **Внимание:** Нарушена иерархия заголовков. Вы пропускаете уровни (например, после <code>&lt;h2&gt;</code> идет <code>&lt;h4&gt;</code>).<br><strong>Рекомендация:</strong> Используйте заголовки последовательно, от <code>&lt;h1&gt;</code> до <code>&lt;h6&gt;</code>.</p></div>`;
+    } else {
+        html += `<div class="info"><p>✅ **Отлично:** Иерархия заголовков соблюдается.</p></div>`;
+    }
+    
+    if (headings.length > 0) {
+        const headingList = Array.from(headings).map(h => `<li><strong>${h.tagName}:</strong> ${h.textContent.trim()}</li>`).join('');
+        html += `<h4>Обнаруженные заголовки:</h4><ul>${headingList}</ul>`;
+    } else {
+        html += `<div class="issue"><p>❌ На странице не найдено ни одного заголовка <code>&lt;h1&gt;-&lt;h6&gt;</code>. Это ухудшает читаемость и понимание структуры сайта поисковыми системами.</p></div>`;
+    }
+
+    return html;
+}
+
+// Анализ метатегов
+function analyzeMetaTags(doc) {
+    let html = '';
+
+    const titleTag = doc.querySelector('title');
+    if (titleTag && titleTag.textContent.length > 0) {
+        html += `<div class="info"><p>✅ **Отлично:** Тег <code>&lt;title&gt;</code> найден. <br><strong>Содержимое:</strong> "${titleTag.textContent.trim()}"</p></div>`;
+    } else {
+        html += `<div class="issue"><p>❌ **Критическая ошибка:** Отсутствует или пустой тег <code>&lt;title&gt;</code>. Это самый важный элемент для поисковых систем.<br><strong>Рекомендация:</strong> Добавьте уникальный, содержательный заголовок длиной 50-60 символов.</p></div>`;
+    }
+
+    const descriptionTag = doc.querySelector('meta[name="description"]');
+    if (descriptionTag && descriptionTag.getAttribute('content').length > 0) {
+        html += `<div class="info"><p>✅ **Отлично:** Тег <code>&lt;meta name="description"&gt;</code> найден.<br><strong>Содержимое:</strong> "${descriptionTag.getAttribute('content').trim()}"</p></div>`;`;
+    } else {
+        html += `<div class="issue"><p>❌ **Внимание:** Отсутствует или пустой тег <code>&lt;meta name="description"&gt;</code>.<br><strong>Рекомендация:</strong> Добавьте уникальное описание длиной до 160 символов, которое будет отображаться в результатах поиска.</p></div>`;
+    }
+
+    const robotsTag = doc.querySelector('meta[name="robots"]');
+    if (robotsTag && robotsTag.getAttribute('content').includes('noindex')) {
+        html += `<div class="issue"><p>❌ **Предупреждение:** Обнаружен тег <code>&lt;meta name="robots" content="noindex"&gt;</code>. Эта страница не будет индексироваться.<br><strong>Рекомендация:</strong> Убедитесь, что это сделано намеренно. Если нет, удалите этот тег.</p></div>`;
+    } else {
+        html += `<div class="info"><p>✅ **Отлично:** Не обнаружен тег <code>noindex</code> в мета-роботах.</p></div>`;
+    }
+
+    const canonicalTag = doc.querySelector('link[rel="canonical"]');
+    if (canonicalTag && canonicalTag.getAttribute('href').length > 0) {
+        html += `<div class="info"><p>✅ **Отлично:** Тег <code>&lt;link rel="canonical"&gt;</code> найден.<br><strong>URL:</strong> ${canonicalTag.getAttribute('href').trim()}</p></div>`;
+    } else {
+        html += `<div class="info"><p>ℹ️ **Информация:** Тег <code>canonical</code> не найден. Это может привести к проблемам с дублированием контента, если страница доступна по нескольким URL.</p></div>`;
+    }
+
+    return html;
+}
+
+// Проверка robots.txt и sitemap.xml
+function checkRobotsAndSitemap(siteUrl) {
+    const robotsUrl = `${new URL(siteUrl).origin}/robots.txt`;
+    const sitemapUrl = `${new URL(siteUrl).origin}/sitemap.xml`;
+
+    let html = '';
+
+    // Проверка robots.txt
+    html += `<div class="info"><p><strong>Проверка <code>robots.txt</code>:</strong></p>`;
+    fetch(robotsUrl)
+       .then(response => {
+            if (response.ok) {
+                return response.text().then(text => {
+                    document.getElementById('robots-status').innerHTML = `<p>✅ **Найден:** Файл <code>robots.txt</code> доступен. Его содержимое:</p><pre><code>${text}</code></pre>`;
+                });
+            } else {
+                document.getElementById('robots-status').innerHTML = `<p>❌ **Не найден:** Файл <code>robots.txt</code> не доступен (${response.status} ${response.statusText}).</p>`;
+            }
+        })
+       .catch(error => {
+            document.getElementById('robots-status').innerHTML = `<p>❌ **Ошибка:** Не удалось проверить <code>robots.txt</code>. Возможно, из-за политики CORS.</p>`;
+        });
+    html += `<div id="robots-status">Проверка...</div></div>`;
+
+    // Проверка sitemap.xml
+    html += `<div class="info"><p><strong>Проверка <code>sitemap.xml</code>:</strong></p>`;
+    fetch(sitemapUrl)
+       .then(response => {
+            if (response.ok) {
+                return response.text().then(text => {
+                    document.getElementById('sitemap-status').innerHTML = `<p>✅ **Найден:** Файл <code>sitemap.xml</code> доступен. Его содержимое:</p><pre><code>${text}</code></pre>`;
+                });
+            } else {
+                document.getElementById('sitemap-status').innerHTML = `<p>❌ **Не найден:** Файл <code>sitemap.xml</code> не доступен (${response.status} ${response.statusText}).</p>`;
+            }
+        })
+       .catch(error => {
+            document.getElementById('sitemap-status').innerHTML = `<p>❌ **Ошибка:** Не удалось проверить <code>sitemap.xml</code>. Возможно, из-за политики CORS.</p>`;
+        });
+    html += `<div id="sitemap-status">Проверка...</div></div>`;
+
+    return html;
+}
+</script>
+
+</body>
+</html>
